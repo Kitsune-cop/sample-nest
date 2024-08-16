@@ -6,14 +6,15 @@ import {
   Patch,
   Param,
   Delete,
-  Request,
   UseGuards,
   UnauthorizedException,
+  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { Request } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -37,6 +38,7 @@ export class UserController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   async findAll() {
     try {
       const data = await this.userService.findAll();
@@ -55,7 +57,7 @@ export class UserController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  async findOne(@Param('id') id: string, @Request() req) {
+  async findOne(@Param('id') id: string, @Req() req: Request) {
     try {
       if (id == req.user['id']) {
         const data = await this.userService.findOne(+id);
@@ -76,15 +78,23 @@ export class UserController {
     }
   }
 
-  // @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: Request,
+  ) {
     try {
-      await this.userService.update(+id, updateUserDto);
-      return {
-        success: true,
-        message: 'User Updated Successfully',
-      };
+      if (id == req.user['id']) {
+        await this.userService.update(+id, updateUserDto);
+        return {
+          success: true,
+          message: 'User Updated Successfully',
+        };
+      } else {
+        throw new UnauthorizedException();
+      }
     } catch (error) {
       return {
         success: false,
@@ -93,15 +103,19 @@ export class UserController {
     }
   }
 
-  // @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  @UseGuards(JwtAuthGuard)
+  async remove(@Param('id') id: string, @Req() req: Request) {
     try {
-      await this.userService.remove(+id);
-      return {
-        success: true,
-        message: 'User Deleted Successfully',
-      };
+      if (id == req.user['id']) {
+        await this.userService.remove(+id);
+        return {
+          success: true,
+          message: 'User Deleted Successfully',
+        };
+      } else {
+        throw new UnauthorizedException();
+      }
     } catch (error) {
       return {
         success: false,
