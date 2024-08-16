@@ -6,10 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Request,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('user')
 export class UserController {
@@ -50,14 +54,20 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Param('id') id: string, @Request() req) {
     try {
-      const data = await this.userService.findOne(+id);
-      return {
-        success: true,
-        data,
-        message: 'User Fetched Successfully',
-      };
+      if (id == req.user['id']) {
+        const data = await this.userService.findOne(+id);
+        console.log(req.headers.authorization);
+        return {
+          success: true,
+          data,
+          message: 'User Fetched Successfully',
+        };
+      } else {
+        throw new UnauthorizedException();
+      }
     } catch (error) {
       return {
         success: false,
@@ -66,6 +76,7 @@ export class UserController {
     }
   }
 
+  // @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     try {
@@ -82,6 +93,7 @@ export class UserController {
     }
   }
 
+  // @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {

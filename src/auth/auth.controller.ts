@@ -1,28 +1,24 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { UserService } from 'src/user/user.service';
+import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { LocalGuard } from './guards/local.guard';
+import { Request } from 'express';
+import { JwtAuthGuard } from './guards/jwt.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private userService: UserService) {}
+  constructor(private authService: AuthService) {}
 
-  @Post('signup')
-  async signup(
-    @Body()
-    createUserDto: CreateUserDto,
-  ) {
-    try {
-      await this.userService.create(createUserDto);
+  @Post('login')
+  @UseGuards(LocalGuard)
+  login(@Req() req: Request) {
+    return req.user;
+  }
 
-      return {
-        success: true,
-        message: 'User Created Successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  status(@Req() req: Request) {
+    console.log('Inside authController status endpoint');
+    console.log(req.user);
+    return req.user;
   }
 }
